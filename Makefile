@@ -4,8 +4,11 @@ EXAMPLES=pair
 
 all: $(EXAMPLES)
 
-%: %.c
-	$(CC) $(CFLAGS) -o $@ $<
+%.o: src/%.c
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+%: %.o
+	$(CC) -o $@ $<
 
 clean:
 	rm -rf $(EXAMPLES)
