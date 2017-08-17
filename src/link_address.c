@@ -125,12 +125,16 @@ int main(void)
 
 	int addrlen = sizeof(struct in_addr);
 
+	free(nlmsg);
+	nlmsg = malloc(4096);
 	memset(nlmsg, 0, 4096);
-	nlmsg->nlmsg_len   = sizeof(struct ifaddrmsg);
+	nlmsg->nlmsg_len   = NLMSG_LENGTH(sizeof(struct ifaddrmsg));
 	nlmsg->nlmsg_flags = NLM_F_ACK|NLM_F_REQUEST|NLM_F_CREATE|NLM_F_EXCL;
 	nlmsg->nlmsg_type  = RTM_NEWADDR;
+	nlmsg->nlmsg_seq   = time(NULL);
 
-	struct ifaddrmsg *ifa = (struct ifaddrmsg *) NLMSG_DATA(nlmsg);
+	struct ifaddrmsg *ifa;
+	ifa = (struct ifaddrmsg *) NLMSG_DATA(nlmsg);
 	ifa->ifa_prefixlen = atoi("24");
 	if (!(ifa->ifa_index = if_nametoindex("veth1"))) {
 		printf("failed to get veth1 name: %s\n", strerror(errno));
@@ -140,7 +144,6 @@ int main(void)
 	ifa->ifa_scope = 0;
 
 	rtalen = RTA_LENGTH(addrlen);
-	rta->rta_len  = rtalen;
 
 	struct in_addr addr;
 	struct in_addr bcast;
@@ -148,22 +151,25 @@ int main(void)
 	if (inet_pton(AF_INET, "172.16.1.1", &addr) < 0) {
 		return -1;
 	}
-	if (inet_pton(AF_INET, "255.255.255.0", &bcast) < 0) {
+	if (inet_pton(AF_INET, "172.16.1.255", &bcast) < 0) {
 		return -1;
 	}
 
 	rta = NLMSG_TAIL(nlmsg);
 	rta->rta_type = IFA_LOCAL;
+	rta->rta_len  = rtalen;
 	memcpy(RTA_DATA(rta), &addr, addrlen);
 	nlmsg->nlmsg_len = NLMSG_ALIGN(nlmsg->nlmsg_len) + RTA_ALIGN(rtalen);
 
 	rta = NLMSG_TAIL(nlmsg);
 	rta->rta_type = IFA_ADDRESS;
+	rta->rta_len  = rtalen;
 	memcpy(RTA_DATA(rta), &addr, addrlen);
 	nlmsg->nlmsg_len = NLMSG_ALIGN(nlmsg->nlmsg_len) + RTA_ALIGN(rtalen);
 
 	rta = NLMSG_TAIL(nlmsg);
 	rta->rta_type = IFA_BROADCAST;
+	rta->rta_len  = rtalen;
 	memcpy(RTA_DATA(rta), &bcast, addrlen);
 	nlmsg->nlmsg_len = NLMSG_ALIGN(nlmsg->nlmsg_len) + RTA_ALIGN(rtalen);
 
