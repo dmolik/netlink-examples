@@ -1,6 +1,6 @@
 CFLAGS=-Wall -Wextra -g -std=c99 -pipe
 
-EXAMPLES=pair
+EXAMPLES=pair link_address
 
 all: $(EXAMPLES)
 
