@@ -2,13 +2,13 @@
 
 Some low-level examples of the Linux Netlink interface.
 
-  1. pair:        create a virtual ethernet pair
-  2. link_addres: create a pair and add an address
-  3. refactor:    rewrite link_address in a more concise manner
-  4. namespace:   new network namespace, code courtesy iproute2
-  5. pair_ns:     move the virtual peer into the network namespace
-  6. ns_addr:     add an address to a virtual peer in a namespace
-  7. ns_gw:       add a default route in the namespace and turn on the links
+  1. __pair__         create a virtual ethernet pair
+  2. __link_address__ create a pair and add an address
+  3. __refactor__     rewrite link_address in a more concise manner
+  4. __namespace__    new network namespace, code courtesy iproute2
+  5. __pair_ns__      move the virtual peer into the network namespace
+  6. __ns_addr__      add an address to a virtual peer in a namespace
+  7. __ns_gw__        add a default route in the namespace and turn on the links
 
 The goal of this project is to recreate the following script:
 
