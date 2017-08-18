@@ -1,4 +1,4 @@
-CFLAGS=-Wall -Wextra -g -std=c99 -pipe
+CFLAGS=-Wall -Wextra -g  -Wsign-compare -Wfloat-equal -Wformat-security -std=c99 -pipe
 
 EXAMPLES=pair link_address refactor namespace
 
