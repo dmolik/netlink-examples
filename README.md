@@ -7,6 +7,7 @@ Some low-level examples of the Linux Netlink interface.
   3. refactor:    rewrite link_address in a more concise manner
   4. namespace:   new network namespace, code courtesy iproute2
   5. pair_ns:     move the virtual peer into the network namespace
+  6. ns_addr:     add an address to a virtual peer in a namespace
 
 The goal of this project is to recreate the following script:
 
