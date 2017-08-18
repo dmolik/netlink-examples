@@ -307,6 +307,30 @@ int main(void)
 		exit(1);
 	}
 
+	free(nlmsg);
+	nlmsg = malloc(4096);
+	memset(nlmsg, 0, 4096);
+	nlmsg->nlmsg_len   = NLMSG_LENGTH(sizeof(struct ifinfomsg));
+	nlmsg->nlmsg_flags = NLM_F_ACK|NLM_F_REQUEST;
+	nlmsg->nlmsg_type  = RTM_NEWLINK;
+	nlmsg->nlmsg_seq   = time(NULL);
+
+	ifmsg = (struct ifinfomsg *) NLMSG_DATA(nlmsg);
+	ifmsg->ifi_family  = AF_UNSPEC;
+	ifmsg->ifi_change |= IFF_UP;
+	ifmsg->ifi_flags  |= IFF_UP;
+	if (!(ifmsg->ifi_index = if_nametoindex("veth1"))) {
+		printf("failed to get veth1 name: %s\n", strerror(errno));
+		return 1;
+	}
+
+	if (_nlmsg_send(fd, nlmsg) != 0)
+		exit(1);
+	if (_nlmsg_recieve(fd) != 0) {
+		close(fd);
+		exit(1);
+	}
+
 	if ((child = fork()) == 0) {
 		setns(nsfd, CLONE_NEWNET);
 
