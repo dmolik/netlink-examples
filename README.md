@@ -1,6 +1,6 @@
 # Netlink Examples
 
-Some low-level examples of using the Linux Netlink interface.
+Some low-level examples of the Linux Netlink interface.
 
   1. pair:        create a virtual ethernet pair
   2. link_addres: create a pair and add an address
