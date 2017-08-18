@@ -1,6 +1,6 @@
 CFLAGS=-Wall -Wextra -g -std=c99 -pipe
 
-EXAMPLES=pair link_address
+EXAMPLES=pair link_address refactor
 
 all: $(EXAMPLES)
 
