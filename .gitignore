@@ -7,3 +7,5 @@ namespace
 pair_ns
 ns_addr
 ns_gw
+ns_routes
+masquerade

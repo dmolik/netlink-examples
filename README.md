@@ -9,6 +9,7 @@ Some low-level examples of the Linux Netlink interface.
   5. __pair_ns__      move the virtual peer into the network namespace
   6. __ns_addr__      add an address to a virtual peer in a namespace
   7. __ns_gw__        add a default route in the namespace and turn on the links
+  8. __masquerade__   a libiptc example to add a masquerade route
 
 The goal of this project is to recreate the following script:
 
@@ -20,6 +21,7 @@ ip link add veth1 type veth peer name vpeer1
 ip link set vpeer1 netns ns1
 
 ip addr add 172.16.1.1/24 dev veth1
+ip link set veth1 up
 
 ip netns exec ns1 ip addr add 172.16.1.2/24 dev vpeer1
 ip netns exec ns1 ip link set vpeer1 up

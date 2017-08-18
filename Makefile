@@ -1,8 +1,11 @@
-CFLAGS=-Wall -Wextra -g  -Wsign-compare -Wfloat-equal -Wformat-security -std=c99 -pipe
+CFLAGS=-Wall -Wextra -g  -Wsign-compare -Wfloat-equal -Wformat-security -std=gnu99 -pipe
 
-EXAMPLES=pair link_address refactor namespace pair_ns ns_addr ns_gw
+EXAMPLES=pair link_address refactor namespace pair_ns ns_addr ns_gw masquerade
 
 all: $(EXAMPLES)
+
+masquerade: masquerade.o
+	$(CC) -lip4tc -o $@ $<
 
 %.o: src/%.c
 	$(CC) $(CFLAGS) -c -o $@ $<
