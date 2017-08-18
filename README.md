@@ -35,3 +35,12 @@ iptables -t nat -A POSTROUTING -s 172.16.1.0/255.255.255.0 -o eth0 -j MASQUERADE
 iptables -A FORWARD -i eth0 -o veth1 -j ACCEPT
 iptables -A FORWARD -o eth0 -i veth1 -j ACCEPT
 ```
+
+## Further reading
+
+I found the following list very helpful when putting together this project
+
+  - [https://blogs.igalia.com/dpino/2016/04/10/network-namespaces/]
+  - [https://github.com/theodor96/iptc-dev]
+  - [https://github.com/kenshin54/crane]
+  - [https://strace.io/]
