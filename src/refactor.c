@@ -84,6 +84,28 @@ int main(void)
 		exit(1);
 	}
 
+	int sndbuf = 32768;
+	int rcvbuf = 32768;
+	if (setsockopt(fd, SOL_SOCKET, SO_SNDBUF,
+		&sndbuf, sizeof(sndbuf)) < 0) {
+		fprintf(stderr, "failed to set send buffer: %s\n", strerror(errno));
+		exit(1);
+	}
+	if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF,
+		&rcvbuf,sizeof(rcvbuf)) < 0) {
+		fprintf(stderr, "failed to set recieve buffer: %s\n", strerror(errno));
+		exit(1);
+	}
+	struct sockaddr_nl *sa = malloc(sizeof(struct sockaddr_nl));
+	memset(sa, 0, sizeof(struct sockaddr_nl));
+	sa->nl_family = AF_NETLINK;
+	sa->nl_groups = 0;
+	if (bind(fd, (struct sockaddr *) sa, sizeof(struct sockaddr)) < 0) {
+		fprintf(stderr, "failed to bind socket: %s\n", strerror(errno));
+		exit(1);
+	}
+
+
 	struct nlmsghdr *nlmsg = malloc(4096);
 	memset(nlmsg, 0, 4096);
 	nlmsg->nlmsg_len   = NLMSG_LENGTH(sizeof(struct ifinfomsg));
@@ -160,8 +182,10 @@ int main(void)
 
 	if (_nlmsg_send(fd, nlmsg) != 0)
 		exit(1);
-	if (_nlmsg_recieve(fd) != 0)
+	if (_nlmsg_recieve(fd) != 0) {
+		close(fd);
 		exit(1);
+	}
 
 	return 0;
 }
