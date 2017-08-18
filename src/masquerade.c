@@ -46,13 +46,13 @@ int main()
 	struct nf_nat_ipv4_multi_range_compat* masquerade = (struct nf_nat_ipv4_multi_range_compat  *) target->data;
 	masquerade->rangesize   = 1;
 
-	if (iptc_append_entry("POSTROUTING", e, h) != 0) {
+	if (!iptc_append_entry("POSTROUTING", e, h)) {
 		printf("iptc_append_entry::Error insert/append entry: %s\n", iptc_strerror(errno));
 		result = -1;
 		goto end;
 	}
 
-	if (iptc_commit(h) != 0) {
+	if (!iptc_commit(h)) {
 		printf("iptc_commit::Error commit: %s\n", iptc_strerror(errno));
 		result = -1;
 	}
