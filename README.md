@@ -10,6 +10,7 @@ Some low-level examples of the Linux Netlink interface.
   6. __ns_addr__      add an address to a virtual peer in a namespace
   7. __ns_gw__        add a default route in the namespace and turn on the links
   8. __masquerade__   a libiptc example to add a masquerade route
+  9. __forward__      a libiptc module to add forwarding rules
 
 The goal of this project is to recreate the following script:
 

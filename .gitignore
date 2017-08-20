@@ -9,3 +9,4 @@ ns_addr
 ns_gw
 ns_routes
 masquerade
+forward
