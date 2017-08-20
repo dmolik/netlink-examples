@@ -3,11 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <libiptc/libiptc.h>
-#include <linux/netfilter/xt_mark.h>
-#include <linux/netfilter/xt_physdev.h>
-#include <linux/netfilter/x_tables.h>
 #include <linux/netfilter/nf_nat.h>
-#include <netinet/in.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 
@@ -20,9 +16,9 @@ int main()
 		return -1;
 	}
 
-	unsigned int targetOffset =  XT_ALIGN(sizeof(struct ipt_entry));
-
-	unsigned int totalLen = targetOffset + XT_ALIGN(sizeof(struct xt_entry_target)) + XT_ALIGN(sizeof(struct nf_nat_ipv4_multi_range_compat));
+	unsigned int targetOffset = XT_ALIGN(sizeof(struct ipt_entry));
+	unsigned int totalLen     = targetOffset + XT_ALIGN(sizeof(struct xt_entry_target))
+		+ XT_ALIGN(sizeof(struct nf_nat_ipv4_multi_range_compat));
 
 	struct ipt_entry* e = (struct ipt_entry *)calloc(1, totalLen);
 	if(e == NULL) {
@@ -32,7 +28,7 @@ int main()
 
 	e->target_offset = targetOffset;
 	e->next_offset   = totalLen;
-	strcpy(e->ip.outiface, "eth0");
+	strncpy(e->ip.outiface, "eth0", strlen("eth0") + 1);
 	unsigned int ip, mask;
 	inet_pton (AF_INET, "172.16.1.0", &ip);
 	inet_pton (AF_INET, "255.255.255.0", &mask);
@@ -40,8 +36,10 @@ int main()
 	e->ip.smsk.s_addr = mask;
 
 	struct xt_entry_target* target = (struct xt_entry_target  *) e->elems;
-	target->u.target_size          = XT_ALIGN(sizeof(struct xt_entry_target)) + XT_ALIGN(sizeof(struct nf_nat_ipv4_multi_range_compat));
-	strcpy(target->u.user.name, "MASQUERADE");
+	target->u.target_size          = XT_ALIGN(sizeof(struct xt_entry_target))
+		+ XT_ALIGN(sizeof(struct nf_nat_ipv4_multi_range_compat));
+
+	strncpy(target->u.user.name, "MASQUERADE", strlen("MASQUERADE") + 1);
 	target->u.user.revision = 0;
 	struct nf_nat_ipv4_multi_range_compat* masquerade = (struct nf_nat_ipv4_multi_range_compat  *) target->data;
 	masquerade->rangesize   = 1;
@@ -51,7 +49,6 @@ int main()
 		result = -1;
 		goto end;
 	}
-
 	if (!iptc_commit(h)) {
 		printf("iptc_commit::Error commit: %s\n", iptc_strerror(errno));
 		result = -1;

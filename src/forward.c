@@ -3,12 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <libiptc/libiptc.h>
-#include <linux/netfilter/xt_mark.h>
-#include <linux/netfilter/xt_physdev.h>
-#include <linux/netfilter/x_tables.h>
-#include <linux/netfilter/nf_nat.h>
-#include <netinet/in.h>
-#include <unistd.h>
 
 int main(void)
 {
@@ -33,17 +27,16 @@ int main(void)
 
 	struct xt_standard_target* target = (struct xt_standard_target  *) e->elems;
 	target->target.u.target_size = XT_ALIGN(sizeof(struct xt_standard_target));
-	strcpy(target->target.u.user.name, "ACCEPT");
+	strncpy(target->target.u.user.name, "ACCEPT", strlen("ACCEPT") + 1);
 	target->target.u.user.revision = 0;
-	target->verdict = -NF_ACCEPT - 1;
-	int x = iptc_append_entry("FORWARD", e, h);
-	if (!x) {
+	target->verdict                = -NF_ACCEPT - 1;
+
+	if (iptc_append_entry("FORWARD", e, h) == 0) {
 		printf("iptc_append_entry::Error insert/append entry: %s\n", iptc_strerror(errno));
 		result = -1;
 		goto end;
 	}
-
-	if (!iptc_commit(h)) {
+	if (iptc_commit(h) == 0) {
 		printf("iptc_commit::Error commit: %s\n", iptc_strerror(errno));
 		result = -1;
 	}
