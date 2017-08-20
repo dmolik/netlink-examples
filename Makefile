@@ -17,4 +17,4 @@ masquerade: masquerade.o
 	$(CC) -o $@ $<
 
 clean:
-	rm -rf $(EXAMPLES)
+	rm -rf $(EXAMPLES) *.o
