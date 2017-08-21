@@ -289,6 +289,23 @@ int main(void)
 	if (rc != 0)
 		fprintf(stderr, "failed to run commands in child network namespace\n");
 
+	struct _rule r;
+	r.table = "nat";
+	r.entry = "POSTROUTING";
+	r.type  = "MASQUERADE";
+	r.saddr = "172.16.1.0/24";
+	r.oface = "eth0";
+	_ipt_rule(&r);
+	r.saddr = NULL;
+	r.table = "filter";
+	r.entry = "FORWARD";
+	r.type  = "ACCEPT";
+	r.oface = "eth0";
+	r.iface = "veth0";
+	_ipt_rule(&r);
+	r.oface = "veth0";
+	r.iface = "eth0";
+	_ipt_rule(&r);
 
 	return 0;
 }

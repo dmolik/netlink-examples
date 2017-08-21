@@ -35,7 +35,7 @@ void _free_addr(struct _addr_t *addr)
 	free(addr);
 }
 
-int ipt_rule(struct _rule *rule)
+int _ipt_rule(struct _rule *rule)
 {
 	struct xtc_handle *h = iptc_init(rule->table);
 	int result = 0;
@@ -46,7 +46,10 @@ int ipt_rule(struct _rule *rule)
 	if (!rule->entry)
 		return -1;
 
-	if (!h) { printf( "error condition  %s\n", iptc_strerror(errno)); return -1;}
+	if (!h) {
+		printf( "error condition  %s\n", iptc_strerror(errno));
+		return -1;
+	}
 
 	unsigned int targetOffset =  XT_ALIGN(sizeof(struct ipt_entry));
 	unsigned int totalLen     = targetOffset + XT_ALIGN(sizeof(struct xt_standard_target));
@@ -81,19 +84,21 @@ int ipt_rule(struct _rule *rule)
 		_free_addr(addr);
 	}
 
-	struct xt_standard_target* target = (struct xt_standard_target  *) e->elems;
-	target->target.u.target_size = XT_ALIGN(sizeof(struct xt_standard_target));
 	if (strcmp(rule->type, "MASQUERADE") == 0) {
-		target->target.u.target_size += XT_ALIGN(sizeof(struct nf_nat_ipv4_multi_range_compat));
+		struct xt_entry_target* target = (struct xt_entry_target  *) e->elems;
+		target->u.target_size          = XT_ALIGN(sizeof(struct xt_entry_target))
+			+ XT_ALIGN(sizeof(struct nf_nat_ipv4_multi_range_compat));
+		strncpy(target->u.user.name, rule->type, strlen(rule->type) + 1);
 		target->u.user.revision = 0;
 		struct nf_nat_ipv4_multi_range_compat* masquerade = (struct nf_nat_ipv4_multi_range_compat  *) target->data;
 		masquerade->rangesize   = 1;
 	} else {
+		struct xt_standard_target* target  = (struct xt_standard_target  *) e->elems;
+		target->target.u.target_size = XT_ALIGN(sizeof(struct xt_standard_target));
+		strncpy(target->target.u.user.name, rule->type, strlen(rule->type) + 1);
 		target->target.u.user.revision = 0;
 		target->verdict                = -NF_ACCEPT - 1;
 	}
-
-	strncpy(target->target.u.user.name, rule->type, strlen(rule->type) + 1);
 
 	if (iptc_append_entry(rule->entry, e, h) == 0) {
 		printf("iptc_append_entry::Error insert/append entry: %s\n", iptc_strerror(errno));
