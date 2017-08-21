@@ -4,17 +4,17 @@ EXAMPLES=pair link_address refactor namespace pair_ns ns_addr ns_gw masquerade f
 
 all: $(EXAMPLES)
 
-forward: forward.o
+forward: src/forward.o
 	$(CC) -lip4tc -o $@ $<
 
-masquerade: masquerade.o
+masquerade: src/masquerade.o
 	$(CC) -lip4tc -o $@ $<
 
-%.o: src/%.c
+src/%.o: src/%.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-%: %.o
+%: src/%.o
 	$(CC) -o $@ $<
 
 clean:
-	rm -rf $(EXAMPLES) *.o
+	rm -rf $(EXAMPLES) src/*.o

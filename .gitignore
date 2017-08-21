@@ -1,4 +1,5 @@
 *.o
+src/*.o
 
 pair
 link_address
