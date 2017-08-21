@@ -3,189 +3,20 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 #include <time.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <sys/mount.h>
-#include <sys/stat.h>
-#include <sys/wait.h>
-#include <linux/limits.h>
+#include <wait.h>
+
 #include <linux/rtnetlink.h>
 #include <linux/netlink.h>
-#include <linux/net_namespace.h>
-#include <arpa/inet.h>
 #include <net/if.h>
-#include <unistd.h>
+#include <arpa/inet.h>
 
-#ifndef VETH_INFO_PEER
-#define VETH_INFO_PEER 1
-#endif
-
-#define NETNS_RUN_DIR "/run/netns"
-
-#define NLMSG_TAIL(nmsg) \
-	((struct rtattr *) (((void *) (nmsg)) + NLMSG_ALIGN((nmsg)->nlmsg_len)))
-
-static void _nlmsg_put(struct nlmsghdr *nlmsg, int type, void *data, size_t len)
-{
-	struct rtattr *rta;
-	size_t  rtalen = RTA_LENGTH(len);
-	rta = NLMSG_TAIL(nlmsg);
-	rta->rta_type = type;
-	rta->rta_len  = rtalen;
-	if (data)
-		memcpy(RTA_DATA(rta), data, len);
-	nlmsg->nlmsg_len = NLMSG_ALIGN(nlmsg->nlmsg_len) + RTA_ALIGN(rtalen);
-}
-
-#define NLMSG_STRING(nl, attr, data) \
-	_nlmsg_put((nl), (attr), (data), (strlen((data)) + 1))
-#define NLMSG_ATTR(nl, attr) \
-	_nlmsg_put((nl), (attr), (NULL), (0))
-
-static int _nlmsg_send(int fd, struct nlmsghdr *nlmsg)
-{
-	struct sockaddr_nl *sa = malloc(sizeof(struct sockaddr_nl));
-	memset(sa, 0, sizeof(struct sockaddr_nl));
-	sa->nl_family = AF_NETLINK;
-
-	struct iovec  iov = { nlmsg, nlmsg->nlmsg_len };
-	struct msghdr msg = { sa, sizeof(*sa), &iov, 1, NULL, 0, 0 };
-
-	if (sendmsg(fd, &msg, 0) < 0) {
-		fprintf(stderr, "failed to get socket: %s\n", strerror(errno));
-		return 1;
-	}
-
-	return 0;
-}
-static int _nlmsg_recieve(int fd)
-{
-	struct sockaddr_nl *sa = malloc(sizeof(struct sockaddr_nl));
-	memset(sa, 0, sizeof(struct sockaddr_nl));
-	sa->nl_family = AF_NETLINK;
-
-	int len = 4096;
-	char buf[len];
-	struct iovec  iov = { buf, len };
-	struct msghdr msg = { sa, sizeof(*sa), &iov, 1, NULL, 0, 0 };
-
-	recvmsg(fd, &msg, 0);
-	struct nlmsghdr *ret = (struct nlmsghdr*)buf;
-	if (ret->nlmsg_type == NLMSG_ERROR) {
-		struct nlmsgerr *err = (struct nlmsgerr*)NLMSG_DATA(ret);
-		if (err->error < 0) {
-			fprintf(stderr, "recieve error: %d\n", err->error);
-			return 1;
-		}
-	} else {
-		fprintf(stderr, "invalid recieve type\n");
-		return 1;
-	}
-
-	return 0;
-}
-
-int netns_get_fd(const char *name)
-{
-	char pathbuf[PATH_MAX];
-	const char *path, *ptr;
-
-	path = name;
-	ptr = strchr(name, '/');
-	if (!ptr) {
-		snprintf(pathbuf, sizeof(pathbuf), "%s/%s",
-			NETNS_RUN_DIR, name );
-		path = pathbuf;
-	}
-	return open(path, O_RDONLY);
-}
-
-int new_ns(const char *name)
-{
-	char netns_path[PATH_MAX];
-	int fd;
-	int made_netns_run_dir_mount = 0;
-
-	snprintf(netns_path, sizeof(netns_path), "%s/%s", NETNS_RUN_DIR, name);
-
-	if (mkdir(NETNS_RUN_DIR, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)) {
-		if (errno != EEXIST) {
-			fprintf(stderr, "mkdir %s failed: %s\n",
-				NETNS_RUN_DIR, strerror(errno));
-			return -1;
-		}
-	}
-
-	while (mount("", NETNS_RUN_DIR, "none", MS_SHARED | MS_REC, NULL)) {
-		if (errno != EINVAL || made_netns_run_dir_mount) {
-			fprintf(stderr, "mount --make-shared %s failed: %s\n",
-				NETNS_RUN_DIR, strerror(errno));
-			return -1;
-		}
-
-		if (mount(NETNS_RUN_DIR, NETNS_RUN_DIR, "none", MS_BIND | MS_REC, NULL)) {
-			fprintf(stderr, "mount --bind %s %s failed: %s\n",
-				NETNS_RUN_DIR, NETNS_RUN_DIR, strerror(errno));
-			return -1;
-		}
-		made_netns_run_dir_mount = 1;
-	}
-
-	fd = open(netns_path, O_RDONLY|O_CREAT|O_EXCL, 0);
-	if (fd < 0) {
-		fprintf(stderr, "Cannot create namespace file \"%s\": %s\n",
-			netns_path, strerror(errno));
-		return -1;
-	}
-	close(fd);
-	if (unshare(CLONE_NEWNET) < 0) {
-		fprintf(stderr, "Failed to create a new network namespace \"%s\": %s\n",
-			name, strerror(errno));
-		goto out_delete;
-	}
-
-	if (mount("/proc/self/ns/net", netns_path, "none", MS_BIND, NULL) < 0) {
-		fprintf(stderr, "Bind /proc/self/ns/net -> %s failed: %s\n",
-			netns_path, strerror(errno));
-		goto out_delete;
-	}
-	return 0;
-out_delete:
-	return -1;
-}
-
-int _nl_socket_init(void)
-{
-	int fd = 0;
-	if ((fd = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE)) < 0) {
-		fprintf(stderr, "failed to get socket: %s\n", strerror(errno));
-		return 0;
-	}
-
-	int sndbuf = 32768;
-	int rcvbuf = 32768;
-	if (setsockopt(fd, SOL_SOCKET, SO_SNDBUF,
-		&sndbuf, sizeof(sndbuf)) < 0) {
-		fprintf(stderr, "failed to set send buffer: %s\n", strerror(errno));
-		return 0;
-	}
-	if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF,
-		&rcvbuf,sizeof(rcvbuf)) < 0) {
-		fprintf(stderr, "failed to set recieve buffer: %s\n", strerror(errno));
-		return 0;
-	}
-	struct sockaddr_nl *sa = malloc(sizeof(struct sockaddr_nl));
-	memset(sa, 0, sizeof(struct sockaddr_nl));
-	sa->nl_family = AF_NETLINK;
-	sa->nl_groups = 0;
-	if (bind(fd, (struct sockaddr *) sa, sizeof(struct sockaddr)) < 0) {
-		fprintf(stderr, "failed to bind socket: %s\n", strerror(errno));
-		return 0;
-	}
-
-	return fd;
-}
+#include "fw.h"
+#include "nl.h"
+#include "namespace.h"
 
 int main(void)
 {
@@ -223,9 +54,9 @@ int main(void)
 
 	NLMSG_STRING(nlmsg, IFLA_IFNAME, "vpeer1");
 
-	nest3->rta_len = (void *)NLMSG_TAIL(nlmsg) - (void *)nest3;
-	nest2->rta_len = (void *)NLMSG_TAIL(nlmsg) - (void *)nest2;
-	nest1->rta_len = (void *)NLMSG_TAIL(nlmsg) - (void *)nest1;
+	nest3->rta_len = (unsigned char *)NLMSG_TAIL(nlmsg) - (unsigned char *)nest3;
+	nest2->rta_len = (unsigned char *)NLMSG_TAIL(nlmsg) - (unsigned char *)nest2;
+	nest1->rta_len = (unsigned char *)NLMSG_TAIL(nlmsg) - (unsigned char *)nest1;
 
 	if (_nlmsg_send(fd, nlmsg) != 0)
 		exit(1);
@@ -351,7 +182,7 @@ int main(void)
 		ifa->ifa_prefixlen = atoi("24");
 		if (!(ifa->ifa_index = if_nametoindex("vpeer1"))) {
 			printf("failed to get veth1 name: %s\n", strerror(errno));
-			return 1;
+			exit(1);
 		}
 		ifa->ifa_family = AF_INET;
 		ifa->ifa_scope = 0;
@@ -389,7 +220,7 @@ int main(void)
 		ifmsg->ifi_flags  |= IFF_UP;
 		if (!(ifmsg->ifi_index = if_nametoindex("vpeer1"))) {
 			printf("failed to get veth1 name: %s\n", strerror(errno));
-			return 1;
+			exit(1);
 		}
 
 		if (_nlmsg_send(fd, nlmsg) != 0)
@@ -457,6 +288,7 @@ int main(void)
 	waitpid(child, &rc, 0);
 	if (rc != 0)
 		fprintf(stderr, "failed to run commands in child network namespace\n");
+
 
 	return 0;
 }

@@ -1,5 +1,6 @@
 *.o
 src/*.o
+src/final/*.o
 
 pair
 link_address
@@ -11,3 +12,5 @@ ns_gw
 ns_routes
 masquerade
 forward
+
+final

@@ -1,20 +1,15 @@
-CFLAGS=-Wall -Wextra -g  -Wsign-compare -Wfloat-equal -Wformat-security -std=gnu99 -pipe
-
-EXAMPLES=pair link_address refactor namespace pair_ns ns_addr ns_gw masquerade forward
+CFLAGS=-Wall -Wextra -g  -Wsign-compare -Wfloat-equal -Wformat-security -pipe -std=gnu99 -pedantic
+LDFLAGS=-lip4tc
+EXAMPLES=final
 
 all: $(EXAMPLES)
 
-forward: src/forward.o
-	$(CC) -lip4tc -o $@ $<
 
-masquerade: src/masquerade.o
-	$(CC) -lip4tc -o $@ $<
+final: src/final/main.o src/final/fw.o src/final/namespace.o src/final/nl.o
+	$(CC) $(LDFLAGS) -o $@ $^
 
-src/%.o: src/%.c
+src/final/%.o: src/final/%.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-%: src/%.o
-	$(CC) -o $@ $<
-
 clean:
-	rm -rf $(EXAMPLES) src/*.o
+	rm -rf $(EXAMPLES) *.o src/*.o src/final/*.o
