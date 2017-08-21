@@ -13,6 +13,9 @@ Some low-level examples of the Linux Netlink interface.
   9. __forward__      a libiptc module to add forwarding rules
   10. __final__       Combine it all into a single binary
 
+You're going to need a C compiler, GNU Make, and `iptables-devel` or `iptables-dev`
+in order to compile the final output.
+
 The goal of this project is to recreate the following script:
 
 ```
