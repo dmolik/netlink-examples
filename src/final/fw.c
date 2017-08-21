@@ -25,7 +25,9 @@ struct _addr_t *  _init_addr(const char *ip)
 
 	readdr = strdup(ip);
 	readdr[strlen(ip) - strlen(ptr)] = '\0';
-	inet_pton(AF_INET, readdr, &addr->addr);
+	unsigned int i;
+	inet_pton(AF_INET, readdr, &i);
+	addr->addr = i;
 	addr->mask = htonl(mask);
 	return addr;
 }
@@ -37,14 +39,14 @@ void _free_addr(struct _addr_t *addr)
 
 int _ipt_rule(struct _rule *rule)
 {
-	struct xtc_handle *h = iptc_init(rule->table);
-	int result = 0;
 	if (!rule->table)
 		return -1;
 	if (!rule->type)
 		return -1;
 	if (!rule->entry)
 		return -1;
+	struct xtc_handle *h = iptc_init(rule->table);
+	int result = 0;
 
 	if (!h) {
 		printf( "error condition  %s\n", iptc_strerror(errno));
